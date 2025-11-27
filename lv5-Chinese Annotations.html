@@ -1,0 +1,721 @@
+<!DOCTYPE html> <!-- 声明文档类型为 HTML5 -->
+<html lang="zh-CN"> <!-- 设置页面语言为简体中文 -->
+<head> <!-- 文档头部开始 -->
+  <meta charset="UTF-8" /> <!-- 设置字符编码为 UTF-8 -->
+  <title>LV5 · 中文注释</title> <!-- 浏览器标签页标题 -->
+  <style> /* 内联样式表开始 */
+
+    * { margin: 0; padding: 0; box-sizing: border-box; } /* 全局重置：去掉默认边距，启用统一盒模型 */
+
+    body {
+      height: 100vh; /* 页面高度占满整个视口高度 */
+      overflow: hidden; /* 隐藏溢出内容，避免滚动条 */
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; /* 设置系统优先字体 */
+      background: #000; /* 页面背景为纯黑色 */
+    }
+
+    /* ================= 顶部卷轴 ================= */
+    .name-scroll {
+      position: fixed; /* 固定定位，始终在窗口顶部 */
+      top: 16px; /* 距离顶部 16px */
+      left: 50%; /* 水平居中（配合 transform 使用） */
+      width: 352px; /* 卷轴图片宽度 */
+      height: 86px; /* 卷轴图片高度 */
+      transform: translate(-50%, 0) scale(1); /* 通过平移实现居中，初始缩放为 1 */
+      background: url("https://p1.ssl.qhimg.com/t110b9a9301cf42603c3838099e.png") center/contain no-repeat; /* 设置卷轴背景图，居中等比显示，不平铺 */
+      z-index: 120; /* 最高层级，盖住其他所有元素 */
+      opacity: 0; /* 初始透明，用于做淡入动画 */
+      pointer-events: none; /* 不拦截鼠标事件，点击透传 */
+      display: flex; /* 使用 flex 居中文字 */
+      align-items: center; /* 垂直居中内容 */
+      justify-content: center; /* 水平居中内容 */
+      animation: nameEnter 0.35s ease-out forwards 0s; /* 页面加载时执行卷轴出现动画 */
+    }
+
+    .name-scroll-text {
+      width: 270px; /* 文本显示区域宽度（控制省略效果） */
+      font-size: 14px; /* 文本字号 */
+      color: #000000; /* 文本颜色黑色 */
+      text-align: center; /* 文本水平居中 */
+      white-space: nowrap; /* 不换行显示 */
+      overflow: hidden; /* 超出隐藏 */
+      text-overflow: ellipsis; /* 超出显示省略号 ... */
+    }
+
+    @keyframes nameEnter { /* 顶部卷轴出现动画 */
+      from { opacity: 0; transform: translate(-50%, -20px) scale(0.95); } /* 从上方偏移且缩小、透明 */
+      to   { opacity: 1; transform: translate(-50%, 0) scale(1); } /* 过渡到正常位置与尺寸 */
+    }
+
+    body.exit .name-scroll {
+      animation: nameExit 0.2s ease-in forwards 0s; /* 当 body 带有 exit 类时，卷轴执行退场动画 */
+    }
+    @keyframes nameExit { /* 顶部卷轴退场动画 */
+      from { opacity: 1; transform: translate(-50%, 0) scale(1); } /* 从当前正常状态开始 */
+      to   { opacity: 0; transform: translate(-50%, -20px) scale(0.95); } /* 向上移出并缩小，渐隐 */
+    }
+
+    /* ================= 舞台容器 ================= */
+    .stage {
+      position: relative; /* 相对定位，作为内部绝对定位元素的参考 */
+      width: 100%; /* 占满宽度 */
+      height: 100%; /* 占满高度 */
+      display: flex; /* 使用 flex 布局 */
+      align-items: flex-start; /* 子元素顶部对齐 */
+      justify-content: center; /* 子元素水平居中 */
+      padding-top: 120px; /* 顶部预留空间给卷轴与内容 */
+      overflow: hidden; /* 隐藏溢出内容 */
+    }
+
+    /* 覆盖网页的整体黑色遮罩（50%）——在红色动效下面 */
+    .page-dark-mask {
+      position: fixed; /* 固定覆盖全屏 */
+      left: 0; /* 左对齐视口 */
+      top: 0; /* 顶对齐视口 */
+      width: 100vw; /* 宽度为视口宽度 */
+      height: 100vh; /* 高度为视口高度 */
+      background: rgba(0, 0, 0, 0.5); /* 半透明黑色遮罩，50% 透明度 */
+      z-index: 10; /* 层级在底图之上、红色舞台之下 */
+      pointer-events: none; /* 不影响底部鼠标事件 */
+      opacity: 0; /* 初始透明，用于淡入 */
+      animation: pageMaskIn 0.25s ease-out forwards; /* 页面进入时遮罩淡入 */
+    }
+    @keyframes pageMaskIn { /* 整体遮罩进入动画 */
+      from { opacity: 0; } /* 从不可见开始 */
+      to   { opacity: 0.5; } /* 最终变为 50% 透明度 */
+    }
+    body.exit .page-dark-mask {
+      animation: pageMaskOut 0.25s ease-in forwards 0.05s; /* 退场时遮罩淡出 */
+    }
+    @keyframes pageMaskOut { /* 整体遮罩退场动画 */
+      from { opacity: 0.5; } /* 从当前 50% 透明开始 */
+      to   { opacity: 0; } /* 逐渐透明至 0 */
+    }
+
+    /* 上下黑色渐变遮罩：在最上层，但低于 logo/文字、卷轴 */
+    .stage::before,
+    .stage::after {
+      content: ""; /* 伪元素内容为空，用于绘制遮罩 */
+      position: absolute; /* 绝对定位覆盖舞台顶部/底部 */
+      left: 50%; /* 水平居中（配合 transform） */
+      transform: translateX(-50%); /* 水平偏移实现真正居中 */
+      width: 2560px; /* 遮罩宽度较大，保证在宽屏下也覆盖 */
+      height: 40%; /* 遮罩高度为舞台高度的 40% */
+      z-index: 60; /* 高于红色舞台但低于 logo/文字与卷轴 */
+      pointer-events: none; /* 不拦截鼠标事件 */
+    }
+    .stage::before {
+      top: 0; /* 顶部遮罩贴近舞台顶部 */
+      background: linear-gradient(
+        to bottom, /* 从上到下渐变 */
+        rgba(0, 0, 0, 0.98) 0%,   /* 顶部几乎全黑 */
+        rgba(0, 0, 0, 0.82) 25%,  /* 稍微减弱 */
+        rgba(0, 0, 0, 0.55) 55%,  /* 中间区域透明度降低 */
+        rgba(0, 0, 0, 0.0) 100%   /* 底部完全透明，过渡到舞台内容 */
+      );
+    }
+    .stage::after {
+      bottom: 0; /* 底部遮罩贴近舞台底部 */
+      background: linear-gradient(
+        to top, /* 从下到上渐变 */
+        rgba(0, 0, 0, 0.99) 0%,   /* 底部几乎全黑 */
+        rgba(0, 0, 0, 0.82) 25%,  /* 渐变减弱 */
+        rgba(0, 0, 0, 0.55) 55%,  /* 中间透明度降低 */
+        rgba(0, 0, 0, 0.0) 100%   /* 顶部完全透明，过渡到舞台内容 */
+      );
+    }
+
+    /* 中间矩形黑色遮罩：在红色动效下面（盖住底图） */
+    .bottom-mask {
+      position: absolute; /* 绝对定位在舞台中心位置 */
+      width: 700px; /* 遮罩宽度 700 */
+      height: 800px; /* 遮罩高度 800 */
+      left: 50%; /* 水平居中（配合 transform） */
+      top: 50%; /* 垂直居中（配合 transform） */
+      transform: translate(-50%, -50%) scale(0.9); /* 居中并略微缩小，便于动画 */
+      border-radius: 0; /* 无圆角（矩形遮罩） */
+      background: radial-gradient(circle,
+        rgba(0, 0, 0, 0.98) 0%,   /* 中心几乎全黑 */
+        rgba(0, 0, 0, 0.97) 40%,  /* 渐变区保持较深 */
+        rgba(0, 0, 0, 0.85) 65%,  /* 边缘处逐渐变浅 */
+        rgba(0, 0, 0, 0.0) 90%    /* 最外圈完全透明，与背景融合 */
+      );
+      filter: blur(30px); /* 高斯模糊，做柔和光晕效果 */
+      z-index: 20; /* 在页面黑遮罩之上，在红色动效之下 */
+      pointer-events: none; /* 不拦截鼠标事件 */
+      opacity: 0; /* 初始透明，用于淡入动画 */
+      animation: bottomMaskIn 0.25s ease-out forwards 0.08s; /* 进入时淡入 + 轻微放大 */
+    }
+    @keyframes bottomMaskIn { /* 中间黑色遮罩进入动画 */
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } /* 较小且透明 */
+      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }   /* 变为正常大小和不透明 */
+    }
+    body.exit .bottom-mask {
+      animation: bottomMaskOut 0.22s ease-in forwards 0.05s; /* 退场时遮罩淡出缩小 */
+    }
+    @keyframes bottomMaskOut { /* 中间黑色遮罩退场动画 */
+      from { opacity: 1; transform: translate(-50%, -50%) scale(1); }   /* 正常状态开始 */
+      to   { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } /* 略微缩小并淡出 */
+    }
+
+    /* ================= 红色舞台背景 ================= */
+    .bg-columns {
+      position: relative; /* 相对定位，内部各层级相对于此容器定位 */
+      z-index: 30; /* 位于中间遮罩之上、上下黑遮罩之下 */
+      width: 60%; /* 舞台宽度为视口的 60% */
+      max-width: 980px; /* 最大宽度限制为 980px */
+      height: 90%; /* 舞台高度为舞台区域的 90% */
+      overflow: hidden; /* 超出部分裁切，形成干净的舞台边界 */
+      opacity: 0; /* 初始透明，用于淡入动画 */
+      transform: translateY(20px); /* 初始略微下移，用于上移进入效果 */
+      animation: bgEnter 0.3s ease-out forwards 0.1s; /* 红色舞台背景进入动画 */
+    }
+    @keyframes bgEnter { /* 舞台背景进入动画 */
+      from { opacity: 0; transform: translateY(40px); } /* 从更低位置、透明开始 */
+      to   { opacity: 1; transform: translateY(0); }    /* 逐渐上移至原位、完全显示 */
+    }
+    body.exit .bg-columns {
+      animation: bgExit 0.25s ease-in forwards 0.05s; /* 退场时整体下移并淡出 */
+    }
+    @keyframes bgExit { /* 舞台背景退场动画 */
+      from { opacity: 1; transform: translateY(0); }    /* 正常状态开始 */
+      to   { opacity: 0; transform: translateY(20px); } /* 向下移出并渐隐 */
+    }
+
+    /* 顶部渐变盖板：柔化红色顶部边缘，避免“切割感” */
+    .bg-columns::before {
+      content: ""; /* 伪元素绘制顶部黑色渐变遮罩 */
+      position: absolute; /* 绝对定位于舞台内部顶部区域 */
+      left: 0; /* 左侧顶住容器 */
+      right: 0; /* 右侧顶住容器 */
+      top: -80px; /* 向上扩展，让遮罩更平滑 */
+      height: 160px; /* 遮罩高度 160px */
+      background: linear-gradient(
+        to bottom, /* 从上到下渐变 */
+        #000000 0%,              /* 顶部纯黑，遮住上边界 */
+        rgba(0,0,0,0.85) 25%,    /* 渐变过渡区域 */
+        rgba(0,0,0,0.5) 60%,     /* 中部透明度降低 */
+        rgba(0,0,0,0.0) 100%     /* 底部完全透明，平滑过渡到红色背景 */
+      );
+      z-index: 40; /* 位于红色内容之上、logo 之下 */
+      pointer-events: none; /* 不拦截鼠标事件 */
+    }
+
+    /* ===== 红色空间结构 ===== */
+
+    .layer-back {
+      position: absolute; /* 背景红色色块，绝对定位 */
+      top: -12%; /* 上下超出一点，增强层次 */
+      bottom: -12%;
+      left: 50%; /* 水平居中 */
+      transform: translateX(-50%); /* 平移实现真正居中 */
+      width: 44%; /* 背景层宽度较大 */
+      background: linear-gradient(
+        to bottom,
+        #120004 0%,   /* 深暗红顶部 */
+        #210008 25%,  /* 渐变加深 */
+        #29000a 50%,  /* 中部更深 */
+        #210008 75%,  /* 渐变回落 */
+        #100003 100%  /* 底部深暗 */
+      );
+      opacity: 0.9; /* 略透明，避免太实 */
+      filter: blur(10px); /* 模糊，营造远景层的感觉 */
+      z-index: 0; /* 红色色块中最底层 */
+    }
+
+    .layer-mid {
+      position: absolute; /* 中景红色色块 */
+      top: -8%; /* 稍微超出容器上下 */
+      bottom: -8%;
+      left: 50%; /* 水平居中 */
+      transform: translateX(-50%); /* 居中平移 */
+      width: 32%; /* 中景宽度小于背景层 */
+      background: linear-gradient(
+        to bottom,
+        #200005 0%,   /* 顶部颜色 */
+        #34000a 25%,  /* 渐变加深 */
+        #43000d 50%,  /* 中部更亮一点的红 */
+        #34000a 75%,  /* 回落 */
+        #1f0005 100%  /* 底部暗色 */
+      );
+      opacity: 0.95; /* 几乎不透明，增加存在感 */
+      filter: blur(4px); /* 较小的模糊，模拟略前景的层次 */
+      z-index: 1; /* 在背景层之上 */
+      animation: midPulse 4.2s ease-in-out infinite 0.7s; /* 中景层做缓慢呼吸闪动 */
+    }
+
+    .center-panel {
+      position: absolute; /* 中心主红色区域 */
+      top: 0; /* 从容器顶部到底部 */
+      bottom: 0;
+      left: 50%; /* 水平居中 */
+      transform: translateX(-50%); /* 居中平移 */
+      width: 18%; /* 中心主面板较窄，突出纵向感 */
+      background: linear-gradient(
+        to bottom,
+        #340009 0%,   /* 顶部深红 */
+        #6c0d1f 25%,  /* 渐变亮红 */
+        #8b152b 50%,  /* 中间高亮区域 */
+        #6c0d1f 75%,  /* 渐变回落 */
+        #340009 100%  /* 底部深红 */
+      );
+      box-shadow:
+        0 0 24px rgba(180, 35, 70, 0.95),   /* 内外小范围红光 */
+        0 0 120px rgba(140, 20, 45, 0.95);  /* 大范围红色光晕 */
+      z-index: 4; /* 高于左右面板与背景层 */
+      animation: centerPulse 3.2s ease-in-out infinite 0.9s; /* 中心面板做更明显的呼吸光效 */
+    }
+
+    .center-glow {
+      position: absolute; /* 中央光晕层 */
+      inset: -4%; /* 向外扩 4%，便于光晕柔和延伸 */
+      background: radial-gradient(circle at center,
+        rgba(210, 60, 100, 0.4) 0%,  /* 中心粉红光 */
+        rgba(150, 30, 60, 0.34) 18%, /* 边缘渐变 */
+        rgba(80, 10, 25, 0.14) 40%,  /* 更远一些的阴影色 */
+        rgba(10, 0, 5, 0.0) 65%      /* 外圈透明 */
+      );
+      mix-blend-mode: screen; /* 使用叠加模式，增强亮度感 */
+      z-index: 2; /* 介于中景和主面板之间的光晕层 */
+      animation: glowWave 4.5s ease-in-out infinite 1s; /* 缓慢波动的光晕动画 */
+    }
+
+    .side-panel {
+      position: absolute; /* 左右两侧深红面板 */
+      top: -6%; /* 稍微向上超出 */
+      bottom: -6%; /* 稍微向下超出 */
+      width: 10%; /* 面板宽度 */
+      background: linear-gradient(
+        to bottom,
+        #130003 0%,   /* 顶部深色 */
+        #260007 25%,  /* 渐变过渡 */
+        #2f0009 50%,  /* 中间更深 */
+        #260007 75%,  /* 回落 */
+        #130003 100%  /* 底部深色 */
+      );
+      opacity: 0.75; /* 稍微透明，让后面层级可见 */
+      filter: blur(2px); /* 稍微模糊，避免太锐利 */
+      z-index: 3; /* 靠前的红色结构 */
+    }
+    .side-panel.left  { left: 26%; }  /* 左侧面板位置偏左 */
+    .side-panel.right { right: 26%; } /* 右侧面板位置偏右 */
+
+    .side-line {
+      position: absolute; /* 左右高光线条 */
+      top: -8%;  /* 稍微向上超出 */
+      bottom: -8%; /* 稍微向下超出 */
+      width: 1px; /* 极细线条 */
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,   /* 顶部透明 */
+        rgba(255, 255, 255, 0.25) 50%, /* 中间白亮 */
+        rgba(255, 255, 255, 0) 100%  /* 底部透明 */
+      );
+      opacity: 0.45; /* 适中亮度 */
+      filter: blur(1px); /* 稍微模糊，让线条柔和 */
+      mix-blend-mode: screen; /* 高光叠加模式 */
+      z-index: 4; /* 高于左右面板 */
+    }
+    .side-line.left  { left: 26%; }   /* 左侧高光线条位置 */
+    .side-line.right { right: 26%; }  /* 右侧高光线条位置 */
+
+    .side-strip {
+      position: absolute; /* 左右竖向深色条带，增加层次 */
+      top: -6%; /* 上下略微超出容器 */
+      bottom: -6%;
+      background: linear-gradient(
+        to bottom,
+        #120003 0%,   /* 顶部深色 */
+        #230006 25%,  /* 渐变过渡 */
+        #2a0008 50%,  /* 中部深色 */
+        #230006 75%,  /* 回落 */
+        #120003 100%  /* 底部深色 */
+      );
+      opacity: 0.55; /* 适中透明度，形成多个暗层 */
+      filter: blur(3px); /* 轻微模糊，形成柔和层次块 */
+      z-index: 2; /* 在中景层和左右面板之间 */
+    }
+    .side-strip.l1 { left: 22%; width: 8%; opacity: 0.55; } /* 左侧第 1 层暗红条 */
+    .side-strip.l2 { left: 18%; width: 6%; opacity: 0.45; } /* 左侧第 2 层暗红条（更窄更暗） */
+    .side-strip.l3 { left: 15%; width: 4%; opacity: 0.35; } /* 左侧第 3 层暗红条（最窄最暗） */
+    .side-strip.r1 { right: 22%; width: 8%; opacity: 0.55; } /* 右侧第 1 层暗红条 */
+    .side-strip.r2 { right: 18%; width: 6%; opacity: 0.45; } /* 右侧第 2 层暗红条 */
+    .side-strip.r3 { right: 15%; width: 4%; opacity: 0.35; } /* 右侧第 3 层暗红条 */
+
+    .white-streak {
+      position: absolute; /* 细竖向白色光束，增加流动感 */
+      top: -15%; /* 上下超出范围，保证光线完整经过舞台 */
+      bottom: -15%;
+      width: 1px; /* 细线宽度 */
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,   /* 顶部透明 */
+        rgba(255, 255, 255, 0.16) 45%, /* 中上轻微高光 */
+        rgba(255, 255, 255, 0.26) 50%, /* 中间最亮 */
+        rgba(255, 255, 255, 0.16) 55%, /* 中下渐弱 */
+        rgba(255, 255, 255, 0) 100%  /* 底部透明 */
+      );
+      opacity: 0.2; /* 整体不太亮，避免喧宾夺主 */
+      filter: blur(2px); /* 模糊光线边缘 */
+      mix-blend-mode: screen; /* 高光叠加模式 */
+      z-index: 3; /* 处于红色结构中间层 */
+      animation: streakFloat 5s ease-in-out infinite alternate 1.2s; /* 左右轻微飘动动画 */
+    }
+    .ws1 { left: 44%; } /* 第 1 根白色光束位置 */
+    .ws2 { left: 38%; animation-delay: 1.5s; } /* 第 2 根偏左一点，延迟进入 */
+    .ws3 { right: 44%; animation-delay: 1.8s; } /* 第 3 根偏右，延迟不同 */
+    .ws4 { right: 38%; animation-delay: 2.1s; } /* 第 4 根偏右一点，错峰运动 */
+    .ws5 { left: 50%; transform: translateX(-50%); opacity: 0.28; animation-delay: 2.4s; } /* 中央一根较亮的白色光束 */
+
+    .beam-mid {
+      position: absolute; /* 中间区域较宽光柱，提升舞台亮度 */
+      top: -6%; /* 上下略微超出容器 */
+      bottom: -6%;
+      width: 9%; /* 光柱宽度 */
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 70, 90, 0) 0%,    /* 顶部透明 */
+        rgba(255, 60, 80, 0.38) 25%,/* 渐变为半透明高光 */
+        rgba(255, 40, 70, 0.7) 50%, /* 中部最亮 */
+        rgba(255, 60, 80, 0.38) 75%,/* 渐变回落 */
+        rgba(255, 70, 90, 0) 100%   /* 底部透明 */
+      );
+      opacity: 0.42; /* 整体透明度适中 */
+      filter: blur(2.2px); /* 柔化光柱边缘 */
+      mix-blend-mode: screen; /* 加亮叠加 */
+      z-index: 5; /* 靠前的光效层 */
+      animation: beamSwing 3.8s ease-in-out infinite alternate 1.4s; /* 左右轻微摇摆动画 */
+    }
+    .beam-mid.l { left: 30%; } /* 左侧中部光柱位置 */
+    .beam-mid.r { right: 30%; animation-delay: 1.8s; } /* 右侧中部光柱，稍有延迟 */
+
+    .beam-side {
+      position: absolute; /* 更靠两侧的光束，营造空间纵深 */
+      top: -10%; /* 上下超出更多，光效更长 */
+      bottom: -10%;
+      width: 7%; /* 光束宽度略窄 */
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 40, 60, 0) 0%,    /* 顶部透明 */
+        rgba(200, 25, 50, 0.4) 45%, /* 中上高光 */
+        rgba(200, 25, 50, 0.5) 50%, /* 中间最亮 */
+        rgba(200, 25, 50, 0.4) 55%, /* 中下回落 */
+        rgba(255, 40, 60, 0) 100%   /* 底部透明 */
+      );
+      opacity: 0.18; /* 更弱一点的亮度 */
+      filter: blur(8px); /* 较大的模糊，造出柔和大光柱 */
+      mix-blend-mode: screen; /* 使用加亮叠加模式 */
+      z-index: 1; /* 比中间面板更靠底，作为远景光效 */
+      animation: sideBeamFloat 5.2s ease-in-out infinite alternate 1.6s; /* 左右、上下的缓慢漂浮动画 */
+    }
+    .beam-side.sl1 { left: 18%; } /* 左侧远景光束位置 */
+    .beam-side.sr1 { right: 18%; } /* 右侧远景光束位置 */
+
+    .beam-far {
+      position: absolute; /* 最远层更宽的暗红光柱 */
+      top: -8%;           /* 上下轻微超出容器 */
+      bottom: -8%;
+      width: 9%;          /* 光柱宽度 */
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 30, 50, 0) 0%,    /* 顶部透明 */
+        rgba(150, 10, 30, 0.3) 50%, /* 中间暗红光 */
+        rgba(255, 30, 50, 0) 100%   /* 底部透明 */
+      );
+      opacity: 0.1; /* 非常弱的亮度，只做氛围 */
+      filter: blur(11px); /* 大模糊，形成虚化背景光 */
+      mix-blend-mode: screen; /* 加亮叠加 */
+      z-index: 0; /* 红色结构中最底层的光效 */
+      animation: farFade 5.8s ease-in-out infinite alternate 1.8s; /* 慢速闪烁，增强环境感 */
+    }
+    .beam-far.l1 { left: 10%; }  /* 左侧远景暗红光柱 */
+    .beam-far.r1 { right: 10%; } /* 右侧远景暗红光柱 */
+
+    .scanline {
+      position: absolute; /* 垂直扫光效果 */
+      left: 50%; /* 水平居中 */
+      transform: translateX(-50%); /* 居中平移 */
+      width: 18%; /* 宽度覆盖中心区域 */
+      height: 200%; /* 高度拉长，以便上下扫动 */
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,   /* 顶部透明 */
+        rgba(255, 255, 255, 0.35) 50%, /* 中部白亮 */
+        rgba(255, 255, 255, 0) 100%  /* 底部透明 */
+      );
+      opacity: 0; /* 初始透明，动画中逐渐显示 */
+      mix-blend-mode: screen; /* 高光叠加 */
+      z-index: 7; /* 位于中心面板前方 */
+      animation: scanDown 6s ease-in-out infinite 2.2s; /* 纵向扫光循环动画 */
+      pointer-events: none; /* 不拦截鼠标事件 */
+    }
+
+    /* 粒子 */
+    .particles {
+      position: absolute; /* 粒子容器，覆盖中间区域 */
+      top: 5%; /* 稍微向上 */
+      bottom: 25%; /* 底部留空一点，让粒子集中在上方 */
+      left: 20%; /* 左右收窄范围，聚焦在中部 */
+      right: 20%;
+      pointer-events: none; /* 不影响鼠标操作 */
+      overflow: hidden; /* 裁剪超出区域的粒子 */
+      z-index: 9; /* 位于红色结构前面、logo 背后 */
+    }
+    .particle {
+      position: absolute; /* 单个粒子绝对定位 */
+      border-radius: 50%; /* 圆形粒子 */
+      background: radial-gradient(circle,
+        rgba(255, 230, 180, 0.95) 0%, /* 粒子中心偏暖亮色 */
+        rgba(255, 200, 100, 0.1) 60%, /* 周围淡色 */
+        rgba(255, 200, 100, 0) 100%   /* 外圈透明 */
+      );
+      box-shadow: 0 0 12px rgba(255, 210, 120, 0.9); /* 外发光增强亮度感 */
+      opacity: 0; /* 初始透明，通过动画淡入淡出 */
+      animation: floatUp 3s linear infinite; /* 通用向上浮动动画，循环 */
+    }
+
+    /* 一组粒子位置与大小配置，通过错峰 delay 形成随机感 */
+    .p1  { width:3px; height:3px; left:48%; bottom:5%;  }             /* 粒子1：小粒子，偏下中间 */
+    .p2  { width:4px; height:4px; left:52%; bottom:18%; animation-delay:-0.3s; }  /* 粒子2：有负延迟，动画错峰 */
+    .p3  { width:5px; height:5px; left:44%; bottom:26%; animation-delay:-0.6s; }
+    .p4  { width:3px; height:3px; left:56%; bottom:12%; animation-delay:-0.9s; }
+    .p5  { width:6px; height:6px; left:40%; bottom:20%; animation-delay:-1.2s; }
+    .p6  { width:4px; height:4px; left:60%; bottom:22%; animation-delay:-1.5s; }
+    .p7  { width:5px; height:5px; left:46%; bottom:34%; animation-delay:-1.8s; }
+    .p8  { width:3px; height:3px; left:54%; bottom:30%; animation-delay:-2.1s; }
+    .p9  { width:4px; height:4px; left:42%; bottom:40%; animation-delay:-2.4s; }
+    .p10 { width:6px; height:6px; left:58%; bottom:38%; animation-delay:-2.7s; }
+    .p11 { width:3px; height:3px; left:50%; bottom:45%; animation-delay:-3.0s; }
+    .p12 { width:4px; height:4px; left:47%; bottom:10%; animation-delay:-3.3s; }
+    .p13 { width:5px; height:5px; left:36%; bottom:18%; animation-delay:-0.45s; }
+    .p14 { width:3px; height:3px; left:64%; bottom:16%; animation-delay:-0.75s; }
+    .p15 { width:4px; height:4px; left:38%; bottom:32%; animation-delay:-1.05s; }
+    .p16 { width:5px; height:5px; left:62%; bottom:30%; animation-delay:-1.35s; }
+    .p17 { width:3px; height:3px; left:43%; bottom:50%; animation-delay:-1.65s; }
+    .p18 { width:4px; height:4px; left:57%; bottom:48%; animation-delay:-1.95s; }
+    .p19 { width:6px; height:6px; left:49%; bottom:55%; animation-delay:-2.25s; }
+    .p20 { width:3px; height:3px; left:52%; bottom:60%; animation-delay:-2.55s; }
+    .p21 { width:4px; height:4px; left:45%; bottom:65%; animation-delay:-2.85s; }
+    .p22 { width:5px; height:5px; left:55%; bottom:68%; animation-delay:-3.15s; }
+    .p23 { width:3px; height:3px; left:41%; bottom:28%; animation-delay:-3.45s; }
+    .p24 { width:4px; height:4px; left:59%; bottom:26%; animation-delay:-3.75s; }
+
+    /* ================= 中心：Logo + 文字 序列帧（顶层） ================= */
+    .center-image {
+      position: absolute; /* 中间 logo+文字 容器，绝对定位到舞台中心 */
+      z-index: 80;        /* 高于上下黑遮罩(60)，低于顶部卷轴(120) */
+      left: 50%;          /* 水平居中（配合 transform） */
+      top: 50%;           /* 垂直居中（配合 transform） */
+      transform: translate(-50%, -50%) scale(0.9); /* 初始略小，方便进入时放大 */
+      text-align: center; /* 内部内容居中对齐 */
+      pointer-events: none; /* 不影响点击穿透 */
+      opacity: 0; /* 初始透明，用于淡入动画 */
+      animation: centerEnter 0.28s ease-out forwards 0.22s; /* 页面进入时的 logo+文字 出场动画 */
+    }
+
+    @keyframes centerEnter { /* 中心内容进入动画 */
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); } /* 从小且透明状态进入 */
+      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }    /* 放大至 1，完全显示 */
+    }
+
+    body.exit .center-image {
+      animation: centerExit 0.18s ease-in forwards 0s; /* 退出时中心内容快速缩小淡出 */
+    }
+    @keyframes centerExit { /* 中心内容退场动画 */
+      from { opacity: 1; transform: translate(-50%, -50%) scale(1); }   /* 当前正常状态 */
+      to   { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } /* 稍微缩小并透明 */
+    }
+
+    /* Logo 序列帧 */
+    .logo-anim {
+      width: 264px; /* 单帧 logo 显示宽度 */
+      height: 214px; /* 单帧 logo 显示高度 */
+      margin: 0 auto; /* 在 center-image 中水平居中 */
+      background-image: url("https://p4.ssl.qhimg.com/t110b9a9301c4b629f442e387c8.png"); /* logo 序列帧精灵图地址 */
+      background-repeat: no-repeat; /* 不平铺，按一整张图使用 */
+      background-size: auto 214px; /* 高度贴合 214px，宽度自动，支持横向多帧 */
+      animation: logoPlay 3s steps(60) infinite 0.5s; /* 使用 steps 帧动画，每 3 秒播放 60 帧循环，延迟 0.5s 开始 */
+    }
+    @keyframes logoPlay { /* logo 序列帧播放动画 */
+      from { background-position: 0 0; }          /* 从精灵图最左边开始 */
+      to   { background-position: -15840px 0; }   /* 整张图向左移动 15840px，刚好走完 60 帧（60*264） */
+    }
+
+    /* 文字序列帧 */
+    .title-anim {
+      width: 460px; /* 单帧文字图片显示宽度 */
+      height: 136px; /* 单帧文字图片显示高度 */
+      margin: 8px auto 0; /* 顶部与 logo 间距 8px，水平居中 */
+      background-image: url("https://p5.ssl.qhimg.com/t110b9a93010bcda6b752b3c88d.png"); /* 文字序列帧精灵图地址 */
+      background-repeat: no-repeat; /* 不平铺 */
+      background-size: auto 136px; /* 高度适配 136px，宽度自适应 */
+      animation: titlePlay 1s steps(20) infinite 0.5s; /* 1 秒播放 20 帧循环，steps 方式，延迟 0.5 秒开始 */
+    }
+    @keyframes titlePlay { /* 文字序列帧播放动画 */
+      from { background-position: 0 0; }        /* 从最左侧开始 */
+      to   { background-position: -9200px 0; }  /* 向左移动 9200px（20 * 460），刚好走完所有帧 */
+    }
+
+    /* ================= 循环氛围动画 ================= */
+
+    @keyframes midPulse { /* 中景红色色块呼吸动画 */
+      0%   { opacity: 0.9; }  /* 起始透明度 */
+      50%  { opacity: 1; }    /* 中间略亮 */
+      100% { opacity: 0.92; } /* 回到接近初始状态 */
+    }
+
+    @keyframes centerPulse { /* 中心红色主面板呼吸光效 */
+      0% {
+        opacity: 0.96; /* 稍亮 */
+        box-shadow: 0 0 18px rgba(170,35,65,.85), 0 0 90px rgba(130,20,40,.9); /* 基础光晕 */
+      }
+      50% {
+        opacity: 1; /* 最亮 */
+        box-shadow: 0 0 30px rgba(210,65,105,1), 0 0 150px rgba(170,40,80,1); /* 高亮时光晕变强、范围扩大 */
+      }
+      100% {
+        opacity: 0.97; /* 回落 */
+        box-shadow: 0 0 18px rgba(170,35,65,.85), 0 0 90px rgba(130,20,40,.9); /* 光晕回到初始状态 */
+      }
+    }
+
+    @keyframes glowWave { /* 中心区域光晕波动动画 */
+      0%   { opacity: 0.6;  transform: scale(1); }     /* 正常大小与透明度 */
+      50%  { opacity: 0.9;  transform: scale(1.03); }  /* 稍微放大变亮一点 */
+      100% { opacity: 0.65; transform: scale(1); }     /* 回归略亮状态 */
+    }
+
+    @keyframes streakFloat { /* 白色竖向光束左右轻微漂浮动画 */
+      0%   { transform: translateX(0);    opacity: 0.14; } /* 起始位置与透明度 */
+      50%  { transform: translateX(-4px); opacity: 0.24; } /* 向左位移一点，变亮 */
+      100% { transform: translateX(3px);  opacity: 0.18; } /* 向右位移一点，透明度略回落 */
+    }
+
+    @keyframes beamSwing { /* 中间光柱左右摇摆动画 */
+      0%   { transform: translate(0, 4px);    opacity: 0.38; } /* 稍微向下并透明 */
+      50%  { transform: translate(-10px, -12px); opacity: 0.55; } /* 左上偏移，变亮 */
+      100% { transform: translate(6px, 8px); opacity: 0.42; } /* 右下偏移，透明度回落 */
+    }
+
+    @keyframes sideBeamFloat { /* 侧边光柱缓慢漂浮动画 */
+      0%   { transform: translate(0, 6px);  opacity: 0.16; } /* 向下、较暗 */
+      50%  { transform: translate(-8px, -10px); opacity: 0.22; } /* 左上偏移、变亮 */
+      100% { transform: translate(5px, 8px); opacity: 0.18; } /* 右下偏移、略暗 */
+    }
+
+    @keyframes farFade { /* 远景暗红光柱的缓慢明灭动画 */
+      0%   { opacity: 0.05; filter: blur(11px); } /* 几乎不可见，模糊较大 */
+      50%  { opacity: 0.15; filter: blur(8px); }  /* 稍微变亮、模糊减小 */
+      100% { opacity: 0.08; filter: blur(11px); } /* 回落为弱光、模糊恢复 */
+    }
+
+    @keyframes scanDown { /* 中央竖向扫光上下扫动动画 */
+      0%   { transform: translate(-50%, -210%); opacity: 0; } /* 从上方之外开始，透明 */
+      15%  { opacity: 0; } /* 继续透明 */
+      30%  { transform: translate(-50%, -40%); opacity: 0.4; }  /* 进入舞台上方，稍亮 */
+      50%  { transform: translate(-50%, 40%);  opacity: 0.2; }  /* 扫到略偏下的位置，透明度降低 */
+      65%  { transform: translate(-50%, 210%); opacity: 0; }    /* 移出舞台下方，透明 */
+      100% { transform: translate(-50%, 210%); opacity: 0; }    /* 保持在舞台外、透明 */
+    }
+
+    @keyframes floatUp { /* 粒子向上飘动动画 */
+      0%   { transform: translateY(0) scale(0.9); opacity: 0; }  /* 起始略小且透明 */
+      15%  { opacity: 1; }                                       /* 快速淡入 */
+      65%  { opacity: 0.7; }                                     /* 保持较亮 */
+      100% { transform: translateY(-90px) scale(1.1); opacity: 0; } /* 向上移动一段距离，略放大并淡出 */
+    }
+
+  </style> <!-- 内联样式表结束 -->
+</head> <!-- 头部结束 -->
+<body> <!-- 页面主体开始 -->
+
+  <!-- 顶部卷轴容器，显示“亲爱的Lv.5玩家...” 文案 -->
+  <div class="name-scroll">
+    <div class="name-scroll-text">亲爱的Lv.5玩家 333444666999</div> <!-- 卷轴内的单行文本内容 -->
+  </div>
+
+  <!-- 覆盖整个网页的半透明黑色遮罩，用于突出中间动效区域 -->
+  <div class="page-dark-mask"></div>
+
+  <!-- 主舞台容器：用于承载红色动效舞台与中间内容 -->
+  <div class="stage">
+
+    <!-- 中间大号黑色矩形遮罩，盖住下面网页内容，烘托红色舞台 -->
+    <div class="bottom-mask"></div>
+
+    <!-- 红色舞台背景容器，包含多层红色色块、光束和粒子 -->
+    <div class="bg-columns">
+      <div class="layer-back"></div>    <!-- 最后方红色背景层 -->
+      <div class="layer-mid"></div>     <!-- 中景红色层，有轻微呼吸动画 -->
+      <div class="center-panel"></div>  <!-- 中心主红色面板，最亮区域 -->
+      <div class="center-glow"></div>   <!-- 中心光晕层，增强发光效果 -->
+
+      <!-- 左右三层暗红竖向块，增强两侧空间层次 -->
+      <div class="side-strip l1"></div>
+      <div class="side-strip l2"></div>
+      <div class="side-strip l3"></div>
+      <div class="side-strip r1"></div>
+      <div class="side-strip r2"></div>
+      <div class="side-strip r3"></div>
+
+      <!-- 左右两侧较宽红色面板 -->
+      <div class="side-panel left"></div>
+      <div class="side-panel right"></div>
+
+      <!-- 左右高光竖线，增加结构边缘亮度 -->
+      <div class="side-line left"></div>
+      <div class="side-line right"></div>
+
+      <!-- 多根细竖向白光束，营造光线流动感 -->
+      <div class="white-streak ws1"></div>
+      <div class="white-streak ws2"></div>
+      <div class="white-streak ws3"></div>
+      <div class="white-streak ws4"></div>
+      <div class="white-streak ws5"></div>
+
+      <!-- 中部两根较强的红色光柱 -->
+      <div class="beam-mid l"></div>
+      <div class="beam-mid r"></div>
+
+      <!-- 两侧偏远的红色光柱，增强空间感 -->
+      <div class="beam-side sl1"></div>
+      <div class="beam-side sr1"></div>
+
+      <!-- 更远处的暗红光柱，营造氛围背景 -->
+      <div class="beam-far l1"></div>
+      <div class="beam-far r1"></div>
+
+      <!-- 垂直扫光效果，周期性从上往下扫过中心区域 -->
+      <div class="scanline"></div>
+
+      <!-- 粒子容器：包含所有飘动的小光点 -->
+      <div class="particles">
+        <!-- 24 个不同位置/大小的粒子，通过动画营造热闹氛围 -->
+        <span class="particle p1"></span><span class="particle p2"></span>
+        <span class="particle p3"></span><span class="particle p4"></span>
+        <span class="particle p5"></span><span class="particle p6"></span>
+        <span class="particle p7"></span><span class="particle p8"></span>
+        <span class="particle p9"></span><span class="particle p10"></span>
+        <span class="particle p11"></span><span class="particle p12"></span>
+        <span class="particle p13"></span><span class="particle p14"></span>
+        <span class="particle p15"></span><span class="particle p16"></span>
+        <span class="particle p17"></span><span class="particle p18"></span>
+        <span class="particle p19"></span><span class="particle p20"></span>
+        <span class="particle p21"></span><span class="particle p22"></span>
+        <span class="particle p23"></span><span class="particle p24"></span>
+      </div> <!-- 粒子容器结束 -->
+    </div> <!-- 红色舞台背景容器结束 -->
+
+    <!-- 顶层：Logo + 文字 动态序列帧（位置在卷轴下面，黑遮罩之上） -->
+    <div class="center-image">
+      <div class="logo-anim"></div>  <!-- logo 序列帧动画，像 GIF 一样播放 -->
+      <div class="title-anim"></div> <!-- 文字序列帧动画，循环播放标题文字动效 -->
+    </div>
+
+  </div> <!-- 舞台容器结束 -->
+
+  <!-- 产品中可通过给 body 增加/移除 .exit 类名来触发整体退场动画 -->
+  <!-- 示例：document.body.classList.add('exit'); -->
+
+</body> <!-- 页面主体结束 -->
+</html> <!-- 文档结束 -->
