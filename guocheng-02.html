@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>红色竖条舞台背景</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      height: 100vh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center,
+        #140101 0%,
+        #050102 55%,
+        #000 100%);
+    }
+
+    .bg-columns {
+      position: relative;
+      width: 70%;
+      max-width: 1100px;
+      height: 90%;
+      overflow: hidden;
+    }
+
+    /* 中央大块红色面板 */
+    .center-panel {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32%;
+      background: linear-gradient(
+        to bottom,
+        #440008 0%,
+        #9b1530 25%,
+        #d92b4c 50%,
+        #9b1530 75%,
+        #440008 100%
+      );
+      box-shadow:
+        0 0 40px rgba(230, 40, 60, 0.9),
+        0 0 140px rgba(190, 30, 40, 0.8);
+      animation: panelPulse 3.5s ease-in-out infinite;
+    }
+
+    /* 中央亮边光束（两条亮线） */
+    .center-edge {
+      position: absolute;
+      top: -5%;
+      bottom: -5%;
+      width: 4px;
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.9) 40%,
+        rgba(255, 255, 255, 0.9) 60%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      box-shadow:
+        0 0 16px rgba(255, 230, 210, 0.8),
+        0 0 40px rgba(255, 140, 140, 0.9);
+      mix-blend-mode: screen;
+      opacity: 0.85;
+      animation: edgeFlicker 2.8s ease-in-out infinite;
+    }
+    .center-edge.left  { left: calc(50% - 16% - 2px); }
+    .center-edge.right { right: calc(50% - 16% - 2px); }
+
+    /* 公共竖条 */
+    .beam {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 70, 70, 0) 0%,
+        rgba(255, 70, 80, 0.3) 25%,
+        rgba(255, 40, 60, 0.7) 50%,
+        rgba(255, 70, 80, 0.3) 75%,
+        rgba(255, 70, 70, 0) 100%
+      );
+      mix-blend-mode: screen;
+    }
+
+    /* 近景竖条 */
+    .beam-near {
+      width: 12%;
+      opacity: 0.45;
+      filter: blur(1.5px);
+      animation: nearMove 5.5s ease-in-out infinite alternate;
+    }
+    .beam-near.l { left: 24%; }
+    .beam-near.r { right: 24%; animation-delay: -1.5s; }
+
+    /* 细竖条（拉高一点的光线） */
+    .beam-thin {
+      width: 3%;
+      opacity: 0.2;
+      filter: blur(3px);
+      animation: thinMove 6s ease-in-out infinite alternate;
+    }
+    .beam-thin.l1 { left: 16%; animation-delay: -1s; }
+    .beam-thin.l2 { left: 34%; animation-delay: -2.3s; }
+    .beam-thin.r1 { right: 18%; animation-delay: -1.8s; }
+    .beam-thin.r2 { right: 32%; animation-delay: -3.3s; }
+
+    /* 远景竖条（更暗更模糊） */
+    .beam-far {
+      width: 8%;
+      opacity: 0.12;
+      filter: blur(9px);
+      animation: farFade 7s ease-in-out infinite alternate;
+    }
+    .beam-far.l { left: 8%; }
+    .beam-far.r { right: 8%; animation-delay: -2.2s; }
+
+    /* 扫描光线 */
+    .scanline {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 28%;
+      height: 170%;
+      background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.32) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      opacity: 0;
+      mix-blend-mode: screen;
+      animation: scanDown 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* 粒子层 */
+    .particles {
+      position: absolute;
+      inset: 5% 15%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(255, 230, 180, 0.95) 0%,
+        rgba(255, 200, 100, 0.1) 60%,
+        rgba(255, 200, 100, 0) 100%);
+      box-shadow: 0 0 12px rgba(255, 210, 120, 0.8);
+      opacity: 0;
+      animation: floatUp 7s linear infinite;
+    }
+    .p1 { left: 37%; bottom: 10%; animation-delay: 0s; }
+    .p2 { left: 46%; bottom: 24%; animation-delay: -2s; }
+    .p3 { left: 56%; bottom: 8%;  animation-delay: -4s; }
+    .p4 { left: 42%; bottom: 36%; animation-delay: -1.3s; }
+    .p5 { left: 60%; bottom: 28%; animation-delay: -3.3s; }
+
+    /* ========= 动画定义 ========= */
+
+    @keyframes panelPulse {
+      0% {
+        opacity: 0.82;
+        box-shadow:
+          0 0 30px rgba(230, 30, 50, 0.8),
+          0 0 110px rgba(200, 25, 40, 0.7);
+      }
+      50% {
+        opacity: 1;
+        box-shadow:
+          0 0 55px rgba(255, 60, 90, 1),
+          0 0 170px rgba(230, 40, 70, 0.9);
+      }
+      100% {
+        opacity: 0.86;
+        box-shadow:
+          0 0 30px rgba(230, 30, 50, 0.8),
+          0 0 110px rgba(200, 25, 40, 0.7);
+      }
+    }
+
+    @keyframes edgeFlicker {
+      0%   { opacity: 0.7; }
+      50%  { opacity: 1; }
+      100% { opacity: 0.8; }
+    }
+
+    @keyframes nearMove {
+      0%   { transform: translate(0, 4px); }
+      50%  { transform: translate(-6px, -10px); }
+      100% { transform: translate(4px, 6px); }
+    }
+
+    @keyframes thinMove {
+      0%   { transform: translate(0, 0); opacity: 0.16; }
+      50%  { transform: translate(-4px, -18px); opacity: 0.28; }
+      100% { transform: translate(3px, 10px); opacity: 0.18; }
+    }
+
+    @keyframes farFade {
+      0%   { opacity: 0.05; filter: blur(10px); }
+      50%  { opacity: 0.18; filter: blur(7px); }
+      100% { opacity: 0.09; filter: blur(10px); }
+    }
+
+    @keyframes scanDown {
+      0%   { transform: translate(-50%, -160%); opacity: 0; }
+      8%   { opacity: 0; }
+      20%  { transform: translate(-50%, -40%);  opacity: 0.35; }
+      40%  { transform: translate(-50%, 40%);   opacity: 0.18; }
+      52%  { transform: translate(-50%, 160%);  opacity: 0; }
+      100% { transform: translate(-50%, 160%);  opacity: 0; }
+    }
+
+    @keyframes floatUp {
+      0%   { transform: translateY(0);    opacity: 0; }
+      10%  { opacity: 1; }
+      60%  { opacity: 0.6; }
+      100% { transform: translateY(-65px); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="bg-columns">
+      <!-- 中央红色大块 -->
+      <div class="center-panel"></div>
+      <!-- 两侧亮边光束 -->
+      <div class="center-edge left"></div>
+      <div class="center-edge right"></div>
+
+      <!-- 远景竖条 -->
+      <div class="beam beam-far l"></div>
+      <div class="beam beam-far r"></div>
+
+      <!-- 中景竖条 -->
+      <div class="beam beam-near l"></div>
+      <div class="beam beam-near r"></div>
+
+      <!-- 细竖条 -->
+      <div class="beam beam-thin l1"></div>
+      <div class="beam beam-thin l2"></div>
+      <div class="beam beam-thin r1"></div>
+      <div class="beam beam-thin r2"></div>
+
+      <!-- 扫描光线 -->
+      <div class="scanline"></div>
+
+      <!-- 粒子层 -->
+      <div class="particles">
+        <span class="particle p1"></span>
+        <span class="particle p2"></span>
+        <span class="particle p3"></span>
+        <span class="particle p4"></span>
+        <span class="particle p5"></span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
